@@ -1,0 +1,229 @@
+# 🏭 App Logística Industrial
+
+App web responsive para equipos de logística en planta. Gestión de tareas, desvíos 5S, calculadora de alambre y faltantes.
+
+---
+
+## 🚀 INICIO RÁPIDO
+
+### 1. Instalar dependencias
+
+```bash
+cd logistica-app
+npm install
+```
+
+### 2. Configurar variables de entorno
+
+```bash
+cp .env.example .env.local
+```
+
+Editar `.env.local` con tus credenciales (ver sección Google Sheets abajo).
+
+### 3. Correr en desarrollo
+
+```bash
+npm run dev
+```
+
+Abrir http://localhost:3000
+
+---
+
+## 🔑 CONFIGURAR GOOGLE SHEETS API
+
+### Paso 1: Crear proyecto en Google Cloud
+
+1. Ir a https://console.cloud.google.com
+2. Crear nuevo proyecto (ej: "logistica-planta")
+3. En el menú lateral → **APIs y servicios** → **Biblioteca**
+4. Buscar y habilitar: **Google Sheets API**
+
+### Paso 2: Crear Service Account
+
+1. **APIs y servicios** → **Credenciales**
+2. Clic en **+ CREAR CREDENCIALES** → **Cuenta de servicio**
+3. Nombre: `logistica-app`
+4. Clic en **Crear y continuar** → **Listo**
+5. En la lista de cuentas de servicio, clic en la que creaste
+6. Pestaña **Claves** → **Agregar clave** → **Crear nueva clave** → **JSON**
+7. Se descarga un archivo `.json` — **guardalo seguro, no lo subas a git**
+
+### Paso 3: Configurar la variable de entorno
+
+Abrí el archivo JSON descargado. Tiene esta forma:
+```json
+{
+  "type": "service_account",
+  "project_id": "logistica-planta",
+  "private_key_id": "...",
+  "private_key": "-----BEGIN RSA PRIVATE KEY-----\n...",
+  "client_email": "logistica-app@logistica-planta.iam.gserviceaccount.com",
+  ...
+}
+```
+
+En `.env.local`, pegá el contenido completo del JSON como una sola línea:
+```
+GOOGLE_SERVICE_ACCOUNT_JSON={"type":"service_account","project_id":"logistica-planta",...}
+```
+
+**Tip:** En Linux/Mac podés hacer:
+```bash
+echo "GOOGLE_SERVICE_ACCOUNT_JSON=$(cat credentials.json | tr -d '\n')" >> .env.local
+```
+
+### Paso 4: Compartir las planillas con la Service Account
+
+1. Copiá el `client_email` del JSON (ej: `logistica-app@logistica-planta.iam.gserviceaccount.com`)
+2. Abrí cada planilla en Google Sheets
+3. Clic en **Compartir** (arriba a la derecha)
+4. Pegá el email de la Service Account
+5. Rol: **Editor** (para poder marcar tareas como completadas)
+6. **Enviar**
+
+Hacé esto para las 3 planillas:
+- Planilla de Tareas: `1XrWrRznjT7geN7kvR_L2yuTnthLAULTyr0JEaQVq7_o`
+- Planilla de Faltantes: `1gUABUn3h-49DJz92Bt_Y495AyVlBIpiGoXD2dAB8lUg`
+- Planilla de Desvíos (crear nueva o usar pestaña "Desvios" en la de tareas)
+
+### Paso 5: Configurar estructura de las planillas
+
+#### Planilla de TAREAS — columnas mínimas:
+| A | B | C |
+|---|---|---|
+| Tarea | Responsable | Estado |
+| Preparar pedido #123 | Juan García | Pendiente |
+| Verificar stock zona 3 | María López | Completada |
+
+Los estados soportados son: `Pendiente`, `Completada`, `En proceso`, `Bloqueada`
+
+#### Planilla de FALTANTES — columnas mínimas:
+| A | B | C | D |
+|---|---|---|---|
+| Producto | Fecha | Cantidad | Unidad |
+| Perno M8 x 20 | 01/07/2025 | 500 | unid |
+| Cable 2.5mm | 28/06/2025 | 100 | m |
+
+#### Planilla de DESVÍOS — crear hoja llamada "Desvios":
+| A | B | C | D | E |
+|---|---|---|---|---|
+| Fecha | Usuario | Descripción | Foto | Estado |
+
+---
+
+## 🌐 DESPLIEGUE EN VERCEL (recomendado)
+
+### Opción A: Con GitHub (más fácil)
+
+1. Subir código a GitHub:
+```bash
+git init
+git add .
+git commit -m "logistica app inicial"
+git remote add origin https://github.com/TU_USUARIO/logistica-app.git
+git push -u origin main
+```
+
+2. Ir a https://vercel.com → **New Project**
+3. Importar el repo de GitHub
+4. En **Environment Variables**, agregar:
+   - `GOOGLE_SERVICE_ACCOUNT_JSON` = (el JSON completo)
+   - `DESVIOS_SPREADSHEET_ID` = (ID de la planilla de desvíos)
+5. Deploy 🚀
+
+### Opción B: CLI de Vercel
+
+```bash
+npm install -g vercel
+vercel
+# Seguir los prompts
+vercel env add GOOGLE_SERVICE_ACCOUNT_JSON
+vercel env add DESVIOS_SPREADSHEET_ID
+vercel --prod
+```
+
+### Resultado
+Tu app queda en: `https://logistica-app.vercel.app`
+
+---
+
+## 📱 USO DESDE CELULAR
+
+Una vez deployada en Vercel:
+
+1. Abrir el link en Chrome/Safari del celular
+2. En Chrome Android: menú (⋮) → **Agregar a pantalla de inicio**
+3. En Safari iOS: compartir (□↑) → **Agregar a pantalla de inicio**
+4. La app queda como ícono en el homescreen (comportamiento tipo app nativa)
+
+Para mejor experiencia offline, podés agregar un Service Worker (ver docs de Next.js PWA).
+
+---
+
+## ⚙️ AJUSTAR COLUMNAS DE TUS PLANILLAS
+
+Si tus planillas tienen nombres de columnas diferentes, editá:
+
+- `src/pages/api/tareas.js` → líneas del `map()` con los nombres de columna
+- `src/pages/api/faltantes.js` → ídem
+- `src/pages/api/tareas.js` → variable `STATUS_COLUMN_LETTER` para indicar qué columna tiene el estado
+
+---
+
+## 🔧 ESTRUCTURA DEL PROYECTO
+
+```
+logistica-app/
+├── src/
+│   ├── pages/
+│   │   ├── index.js          # Página principal
+│   │   ├── _app.js           # App wrapper
+│   │   └── api/
+│   │       ├── tareas.js     # GET/POST tareas desde Sheets
+│   │       ├── faltantes.js  # GET faltantes desde Sheets
+│   │       └── desvios.js    # POST guardar desvío
+│   ├── components/
+│   │   ├── Layout.js         # Header + bottom nav
+│   │   ├── Tareas.js         # Lista de tareas del día
+│   │   ├── Desvios.js        # Formulario de reporte
+│   │   ├── Calculadora.js    # Calculadora de alambre
+│   │   ├── Faltantes.js      # Lista de faltantes
+│   │   └── KPIs.js           # Dashboard operativo
+│   ├── lib/
+│   │   └── sheets.js         # Cliente de Google Sheets API
+│   └── styles/
+│       └── globals.css       # Estilos globales
+├── .env.example              # Template de variables
+├── .env.local                # TUS credenciales (no subir a git)
+├── next.config.js
+├── tailwind.config.js
+└── package.json
+```
+
+---
+
+## 🐛 TROUBLESHOOTING
+
+**"Falta GOOGLE_SERVICE_ACCOUNT_JSON"**
+→ Asegurate de haber creado el archivo `.env.local` con la variable correcta.
+
+**"Error 403 / PERMISSION_DENIED"**
+→ La Service Account no tiene acceso a la planilla. Compartila con el `client_email`.
+
+**"Error 404 / Unable to parse range"**
+→ El rango no existe. Verificá el nombre de la hoja (por defecto "Sheet1" o "Hoja 1").
+
+**Las columnas no se leen bien**
+→ Verificá que la primera fila de tu planilla tenga headers (Tarea, Responsable, Estado).
+→ Ajustá los nombres en el `map()` de `api/tareas.js`.
+
+---
+
+## 📝 NOTAS DE SEGURIDAD
+
+- El archivo `.env.local` y el JSON de credenciales **NUNCA** deben subirse a GitHub
+- En `.gitignore` ya está incluido `.env*`
+- En producción (Vercel), las variables de entorno se guardan cifradas
+"# logistica_app" 
