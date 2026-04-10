@@ -29,26 +29,7 @@ export default function HomePage() {
         badge: 'Prioridad',
         component: <Faltantes />,
       },
-      {
-        id: 'kpis',
-        label: 'KPIs',
-        description: 'Indicadores operativos del área',
-        icon: '📊',
-        accent: 'from-[#2563eb]/30 to-transparent',
-        iconStyle: 'border-[#93c5fd]/30 bg-[#2563eb]/10 text-[#bfdbfe]',
-        badge: 'Control',
-        component: <KPIs />,
-      },
-      {
-        id: 'desvios',
-        label: 'Desvíos',
-        description: 'Registro de desvíos y observaciones',
-        icon: '⚠️',
-        accent: 'from-[#ea580c]/30 to-transparent',
-        iconStyle: 'border-[#fdba74]/30 bg-[#ea580c]/10 text-[#fed7aa]',
-        badge: 'Seguimiento',
-        component: <Desvios />,
-      },
+     
       {
         id: 'calculadora',
         label: 'Alambre',
