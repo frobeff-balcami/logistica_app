@@ -2,8 +2,6 @@ import { useMemo, useState } from 'react'
 import Layout from '../components/Layout'
 import Tareas from '../components/Tareas'
 import Faltantes from '../components/Faltantes'
-import KPIs from '../components/KPIs'
-import Desvios from '../components/Desvios'
 import Calculadora from '../components/Calculadora'
 
 export default function HomePage() {
