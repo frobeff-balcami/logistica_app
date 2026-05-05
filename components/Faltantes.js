@@ -163,7 +163,7 @@ export default function Faltantes() {
 
       const rows = lines
         .slice(1)
-        .map(line => {
+        .map((line, i) => {
           const values = parseCSVLine(line)
           const row = {}
 
