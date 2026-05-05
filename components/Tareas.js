@@ -323,9 +323,9 @@ export default function Tareas() {
       {/* ── Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 14 }}>
         {[
-          { num: totalMias,   label: 'Total',      color: K.purple, bg: K.purpleGlow,   border: 'rgba(139,92,246,0.25)' },
-          { num: pendientes,  label: 'Pendientes', color: K.orange, bg: K.orangeBg,     border: K.orangeBorder },
-          { num: completadas, label: 'Listas',     color: K.green,  bg: K.greenBg,      border: K.greenBorder },
+          { num: totalMias,   label: 'Total',      color: '#e2d9f3', bg: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.1)' },
+          { num: pendientes,  label: 'Pendientes', color: '#fcd34d', bg: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.1)' },
+          { num: completadas, label: 'Listas',     color: '#6ee7b7', bg: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.1)' },
         ].map((s, i) => (
           <div key={i} style={{
             background: s.bg, border: `1px solid ${s.border}`,
@@ -560,8 +560,18 @@ export default function Tareas() {
                   </div>
 
                   {t.observaciones && (
-                    <div style={{ fontSize: 11, color: K.textMuted, marginTop: 5, fontStyle: 'italic' }}>
-                      {t.observaciones}
+                    <div style={{
+                      display: 'flex', alignItems: 'flex-start', gap: 6,
+                      marginTop: 8,
+                      background: 'rgba(139,92,246,0.08)',
+                      border: '1px solid rgba(139,92,246,0.2)',
+                      borderLeft: '3px solid #8b5cf6',
+                      borderRadius: 6, padding: '6px 10px',
+                    }}>
+                      <span style={{ fontSize: 11, color: '#8b5cf6', flexShrink: 0 }}>💬</span>
+                      <span style={{ fontSize: 12, color: '#c4b5fd', lineHeight: 1.4 }}>
+                        {t.observaciones}
+                      </span>
                     </div>
                   )}
                 </div>
