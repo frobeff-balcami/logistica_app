@@ -196,7 +196,7 @@ export default function Tareas() {
           observaciones: row.observaciones || row.notas || row.obs || '',
           turno:        row.turno || row.shift || '',
         }
-      }).filter(t => t.tarea)
+      }).filter(t => t.tarea && !t.estado.trim())
 
       setTareas(rows)
       setLastFetch(new Date())
