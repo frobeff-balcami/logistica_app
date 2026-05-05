@@ -5,7 +5,7 @@ const STATUS_COL_LETTER = 'J'
 
 // ── URL del CSV público (mismo sheet que antes)
 const CSV_URL =
-  'https://docs.google.com/spreadsheets/d/1XrWrRznjT7geN7kvR_L2yuTnthLAULTyr0JEaQVq7_o/pub?gid=0&single=true&output=csv'
+  'https://docs.google.com/spreadsheets/d/e/2PACX-1vRELo88LzUymKq1Ue71ksRaYIVxp-8H5oLanuqHsDOUek1L3wrg_xnZvuD5qNj7-aGhHDOzGTjErnJS/pub?output=csv'
 
 const mono = "'IBM Plex Mono', monospace"
 const sans = "'DM Sans', sans-serif"
