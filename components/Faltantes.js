@@ -129,6 +129,10 @@ export default function Faltantes() {
   const [error, setError] = useState(null)
   const [filtro, setFiltro] = useState('todos')
   const [lastFetch, setLastFetch] = useState(null)
+  const [entregados, setEntregados] = useState(new Set())  // IDs entregados localmente
+  const [comentarios, setComentarios] = useState({})  // comentarios locales por _key
+  const [comentarioAbierto, setComentarioAbierto] = useState(null)  // _key del card con input abierto
+  const [comentarioTemp, setComentarioTemp] = useState('')  // texto en edición
 
   const fetchFaltantes = useCallback(async () => {
     try {
@@ -168,6 +172,7 @@ export default function Faltantes() {
           })
 
           return {
+            _key: `${values[0]||''}-${values[1]||''}-${i}`,
             producto:
               row.producto ||
               row.item ||
@@ -200,6 +205,12 @@ export default function Faltantes() {
               row.maquina ||
               row.máquina ||
               '',
+            area:
+              row.area ||
+              row['área'] ||
+              row.sector ||
+              row.etapa ||
+              '',
             observaciones:
               row.observaciones ||
               row.notas ||
@@ -226,23 +237,52 @@ export default function Faltantes() {
     return () => clearInterval(interval)
   }, [fetchFaltantes])
 
+  const guardarComentario = (key) => {
+    if (comentarioTemp.trim()) {
+      setComentarios(prev => ({ ...prev, [key]: comentarioTemp.trim() }))
+    } else {
+      setComentarios(prev => { const next = { ...prev }; delete next[key]; return next })
+    }
+    setComentarioAbierto(null)
+    setComentarioTemp('')
+  }
+
+  const abrirComentario = (key, textoActual) => {
+    setComentarioAbierto(key)
+    setComentarioTemp(textoActual || '')
+  }
+
+  const marcarEntregado = (key) => {
+    setEntregados(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
   const conDias = faltantes
     .map(f => ({
       ...f,
       dias: diasDesde(f.fecha),
+      entregado: entregados.has(f._key),
+      comentarioLocal: comentarios[f._key] || '',
     }))
     .sort((a, b) => b.dias - a.dias)
 
   const filtrados = conDias.filter(f => {
+    if (filtro === 'entregados') return f.entregado
+    if (f.entregado) return false  // ocultar entregados en otras vistas
     const p = getPriorityLevel(f.dias)
     if (filtro === 'criticos') return p.label === 'CRÍTICO'
     if (filtro === 'urgentes') return p.label === 'URGENTE'
     return true
   })
 
-  const criticos = conDias.filter(f => getPriorityLevel(f.dias).label === 'CRÍTICO').length
-  const urgentes = conDias.filter(f => getPriorityLevel(f.dias).label === 'URGENTE').length
-  const normales = conDias.filter(f => getPriorityLevel(f.dias).label === 'NORMAL').length
+  const entregadosCount = conDias.filter(f => f.entregado).length
+  const criticos = conDias.filter(f => !f.entregado && getPriorityLevel(f.dias).label === 'CRÍTICO').length
+  const urgentes = conDias.filter(f => !f.entregado && getPriorityLevel(f.dias).label === 'URGENTE').length
+  const normales = conDias.filter(f => !f.entregado && getPriorityLevel(f.dias).label === 'NORMAL').length
 
   return (
     <div className="space-y-5">
@@ -267,7 +307,7 @@ export default function Faltantes() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <div className="rounded-[24px] border border-white/10 bg-white/5 p-4 shadow-[0_14px_35px_rgba(0,0,0,0.18)] backdrop-blur">
           <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
             Total
@@ -315,6 +355,17 @@ export default function Faltantes() {
             Prioridad baja
           </div>
         </div>
+        <div className="rounded-[24px] border border-emerald-500/20 bg-emerald-500/10 p-4 shadow-[0_14px_35px_rgba(0,0,0,0.18)] backdrop-blur">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-100/80">
+            Entregados
+          </div>
+          <div className="mt-2 text-3xl font-extrabold text-emerald-300">
+            {entregadosCount}
+          </div>
+          <div className="mt-1 text-xs text-emerald-100/60">
+            Esta sesión
+          </div>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2 rounded-[24px] border border-white/10 bg-white/5 p-3 shadow-[0_14px_35px_rgba(0,0,0,0.16)] backdrop-blur">
@@ -322,6 +373,7 @@ export default function Faltantes() {
           { id: 'todos', label: 'Todos' },
           { id: 'criticos', label: '🔴 Críticos' },
           { id: 'urgentes', label: '🟡 Urgentes' },
+          { id: 'entregados', label: '✓ Entregados' },
         ].map(f => (
           <button
             key={f.id}
@@ -377,11 +429,11 @@ export default function Faltantes() {
           )}
 
           {filtrados.map((f, i) => {
-            const p = getPriorityLevel(f.dias)
+            const p = f.entregado ? { color: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.25)', label: 'ENTREGADO', icon: '✓' } : getPriorityLevel(f.dias)
 
             return (
               <div
-                key={i}
+                key={f._key}
                 className="group relative overflow-hidden rounded-[28px] border p-5 shadow-[0_18px_45px_rgba(0,0,0,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_22px_55px_rgba(0,0,0,0.25)]"
                 style={{
                   background: `linear-gradient(135deg, ${p.bg}, rgba(255,255,255,0.03))`,
@@ -420,6 +472,21 @@ export default function Faltantes() {
                       {f.maquina && (
                         <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/70">
                           🏭 {f.maquina}
+                        </span>
+                      )}
+                      {f.area && (
+                        <span style={{
+                          borderRadius: 20,
+                          padding: '2px 10px',
+                          fontSize: 11,
+                          fontWeight: 700,
+                          letterSpacing: '.1em',
+                          textTransform: 'uppercase',
+                          background: 'rgba(139,92,246,0.15)',
+                          border: '1px solid rgba(139,92,246,0.35)',
+                          color: '#c4b5fd',
+                        }}>
+                          📍 {f.area}
                         </span>
                       )}
                     </div>
@@ -464,9 +531,80 @@ export default function Faltantes() {
                         {f.observaciones}
                       </div>
                     )}
+
+                    {/* Comentario local */}
+                    <div style={{ marginTop: 12 }}>
+                      {comentarioAbierto === f._key ? (
+                        <div style={{
+                          background: 'rgba(139,92,246,0.08)',
+                          border: '1px solid rgba(139,92,246,0.3)',
+                          borderRadius: 12, padding: '10px 12px',
+                        }}>
+                          <textarea
+                            autoFocus
+                            value={comentarioTemp}
+                            onChange={e => setComentarioTemp(e.target.value)}
+                            placeholder="Escribí un comentario..."
+                            rows={2}
+                            style={{
+                              width: '100%', background: 'transparent',
+                              border: 'none', outline: 'none', resize: 'none',
+                              color: '#e2e8f0', fontSize: 13, lineHeight: 1.5,
+                              fontFamily: 'inherit', boxSizing: 'border-box',
+                            }}
+                          />
+                          <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                            <button
+                              onClick={() => guardarComentario(f._key)}
+                              style={{
+                                padding: '5px 14px', borderRadius: 8, fontSize: 12,
+                                fontWeight: 700, cursor: 'pointer',
+                                background: 'rgba(139,92,246,0.3)',
+                                border: '1px solid rgba(139,92,246,0.5)',
+                                color: '#c4b5fd', letterSpacing: '.04em',
+                              }}
+                            >
+                              Guardar
+                            </button>
+                            <button
+                              onClick={() => setComentarioAbierto(null)}
+                              style={{
+                                padding: '5px 14px', borderRadius: 8, fontSize: 12,
+                                cursor: 'pointer', background: 'transparent',
+                                border: '1px solid rgba(255,255,255,0.1)',
+                                color: 'rgba(255,255,255,0.4)', letterSpacing: '.04em',
+                              }}
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => abrirComentario(f._key, f.comentarioLocal)}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 7,
+                            padding: '6px 12px', borderRadius: 10, cursor: 'pointer',
+                            background: f.comentarioLocal ? 'rgba(139,92,246,0.08)' : 'transparent',
+                            border: f.comentarioLocal ? '1px solid rgba(139,92,246,0.25)' : '1px dashed rgba(255,255,255,0.12)',
+                            color: f.comentarioLocal ? '#c4b5fd' : 'rgba(255,255,255,0.3)',
+                            fontSize: 12, textAlign: 'left', maxWidth: '100%',
+                            transition: 'all .15s',
+                          }}
+                        >
+                          <span style={{ flexShrink: 0 }}>💬</span>
+                          <span style={{
+                            overflow: 'hidden', textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap', maxWidth: 300,
+                          }}>
+                            {f.comentarioLocal || 'Agregar comentario...'}
+                          </span>
+                        </button>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="shrink-0 lg:min-w-[130px]">
+                  <div className="shrink-0 lg:min-w-[140px] flex flex-col gap-3">
                     <div className="rounded-[24px] border border-white/10 bg-black/10 px-5 py-4 text-center backdrop-blur">
                       <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40">
                         Cantidad
@@ -481,6 +619,29 @@ export default function Faltantes() {
                         {f.unidad || 'unid.'}
                       </div>
                     </div>
+                    <button
+                      onClick={() => marcarEntregado(f._key)}
+                      style={{
+                        padding: '10px 14px',
+                        borderRadius: 16,
+                        border: f.entregado ? '1px solid rgba(16,185,129,0.5)' : '1px solid rgba(139,92,246,0.4)',
+                        background: f.entregado ? 'rgba(16,185,129,0.15)' : 'rgba(139,92,246,0.15)',
+                        color: f.entregado ? '#6ee7b7' : '#c4b5fd',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        letterSpacing: '.06em',
+                        textTransform: 'uppercase',
+                        cursor: 'pointer',
+                        transition: 'all .2s',
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6,
+                      }}
+                    >
+                      {f.entregado ? '✓ Entregado' : '○ Entregar'}
+                    </button>
                   </div>
                 </div>
               </div>
