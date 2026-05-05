@@ -209,7 +209,7 @@ export default function Tareas() {
           responsable:   row.responsable || row.persona || row.asignado || row.operario || values[1] || '',
           estado:        row.estado || row.status || values[9] || '',
           fecha:         row.fecha || row.date || '',
-          observaciones: row.observaciones || row.notas || row.obs || '',
+          observaciones: row['observación'] || row.observacion || row.observaciones || row.notas || row.obs || '',
           turno:         row.turno || row.shift || '',
         }
       }).filter(t => t.tarea && !t.estado.trim())
