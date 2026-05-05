@@ -1,8 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
 
-// ── Columna del estado en el Sheet (J = índice 9 base-0, fila base-1 para la API)
-const STATUS_COL_LETTER = 'J'
-
 // ── URL del CSV público (mismo sheet que antes)
 const CSV_URL =
   'https://docs.google.com/spreadsheets/d/e/2PACX-1vRELo88LzUymKq1Ue71ksRaYIVxp-8H5oLanuqHsDOUek1L3wrg_xnZvuD5qNj7-aGhHDOzGTjErnJS/pub?output=csv'
@@ -153,7 +150,6 @@ export default function Tareas() {
   const [usuario, setUsuario]       = useState(null)   // null = no elegido aún
   const [filtro, setFiltro]         = useState('todas')
   const [lastFetch, setLastFetch]   = useState(null)
-  const [toggling, setToggling]     = useState(null)   // rowIndex en proceso
 
   // ── Persistir usuario en localStorage
   useEffect(() => {
@@ -213,36 +209,12 @@ export default function Tareas() {
     return () => clearInterval(interval)
   }, [fetchTareas])
 
-  // ── Toggle estado en el sheet via API route
-  const toggleEstado = async (tarea) => {
-    const nuevoEstado = isDone(tarea.estado) ? 'Pendiente' : 'Completada'
-    setToggling(tarea.rowIndex)
-
-    // Optimistic update
+  // ── Toggle estado solo en memoria local (sin escribir en el sheet)
+  const toggleEstado = (tarea) => {
+    const nuevoEstado = isDone(tarea.estado) ? '' : 'Completada'
     setTareas(prev => prev.map(t =>
       t.rowIndex === tarea.rowIndex ? { ...t, estado: nuevoEstado } : t
     ))
-
-    try {
-      const res = await fetch('/api/tareas', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          rowIndex:       tarea.rowIndex,
-          status:         nuevoEstado,
-          statusColLetter: STATUS_COL_LETTER,
-        }),
-      })
-      if (!res.ok) throw new Error('No se pudo guardar')
-    } catch (e) {
-      // Revert on error
-      setTareas(prev => prev.map(t =>
-        t.rowIndex === tarea.rowIndex ? { ...t, estado: tarea.estado } : t
-      ))
-      alert('Error al guardar: ' + e.message)
-    } finally {
-      setToggling(null)
-    }
   }
 
   // ── Derivar lista de operarios únicos del sheet
@@ -421,8 +393,7 @@ export default function Tareas() {
           )}
 
           {tareasFiltradas.map((t, i) => {
-            const done       = isDone(t.estado)
-            const isToggling = toggling === t.rowIndex
+            const done = isDone(t.estado)
 
             return (
               <div
@@ -507,32 +478,30 @@ export default function Tareas() {
                 }}>
                   <button
                     onClick={() => toggleEstado(t)}
-                    disabled={isToggling}
                     title={done ? 'Marcar como pendiente' : 'Marcar como completada'}
                     style={{
                       width: 36, height: 36,
                       border: `2px solid ${done ? '#1a7a4a' : '#c8bfb2'}`,
                       background: done ? '#1a7a4a' : '#fff',
-                      cursor: isToggling ? 'wait' : 'pointer',
+                      cursor: 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: 16, color: done ? '#fff' : '#c8bfb2',
                       transition: 'all .15s', borderRadius: 0,
-                      opacity: isToggling ? 0.5 : 1,
                     }}
                     onMouseEnter={e => {
-                      if (!isToggling && !done) {
+                      if (!done) {
                         e.currentTarget.style.borderColor = '#1a7a4a'
                         e.currentTarget.style.color = '#1a7a4a'
                       }
                     }}
                     onMouseLeave={e => {
-                      if (!isToggling && !done) {
+                      if (!done) {
                         e.currentTarget.style.borderColor = '#c8bfb2'
                         e.currentTarget.style.color = '#c8bfb2'
                       }
                     }}
                   >
-                    {isToggling ? '…' : done ? '✓' : '○'}
+                    {done ? '✓' : '○'}
                   </button>
                 </div>
               </div>
@@ -548,7 +517,7 @@ export default function Tareas() {
           textAlign: 'center', marginTop: 12, letterSpacing: '.08em',
         }}>
           {lastFetch.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
-          {' · '}Auto-refresh 60s · Estado escribe en col {STATUS_COL_LETTER}
+          {' · '}Auto-refresh 60s
         </div>
       )}
     </div>
